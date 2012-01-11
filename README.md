@@ -1,3 +1,4 @@
+
 node-mare
 =========
 
@@ -109,13 +110,17 @@ A server process that communicates over HTTP to interact with the client.
 
 It has the following methods:
 
-* */task* [POST] - Queues up a job. 
+### */task* [POST]
 
-  You'd put your JSON parameter in the POST body. It will return 201 Created and put a /task/{id} URI in the location header.
+Queues up a job. 
+
+You'd put your JSON parameter in the POST body. It will return 201 Created and put a /task/{id} URI in the location header.
   
-* */task/{id}* [GET] - Poll for job completion or return the results. 
+### */task/{id}* [GET]
 
-  It will return 204 No Content while the task is processing then 200 OK after the task is complete and the result set is available. Unfortunately yes, this means the client-side is going to have to poll this endpoint while waiting. It'll have a timeout. We'll fix this later.
+Poll for job completion or return the results. 
+
+It will return 204 No Content while the task is processing then 200 OK after the task is complete and the result set is available. Unfortunately yes, this means the client-side is going to have to poll this endpoint while waiting. It'll have a timeout. We'll fix this later.
 
 node-mare.broker
 ----------------
@@ -124,15 +129,31 @@ A server process that communicates over HTTP to interact with the server and wor
 
 It has the following methods:
 
-* */task* [POST] - Queues up a divide job. 
+### */task* [POST]
 
-  POST body contains { data: ..., type: ..., method: ...}, but the broker only looks at type. The parameters *data* and *method* are from initial node-mare.server/task POST and *type* is either 'divide' or 'process'. Later a node-mare.worker will get this task and execute it. More on that in that section. It will return 201 Created with a ~broker/task/{id} location header on success or some error code on failure. 
+Queues up a divide job. 
 
-* */queue* [GET] - Returns all queued tasks but does not remove them from the queue
-* */queue?count={n}* [GET] - Returns all queued tasks but does not remove them from the queue
-* */queue* [POST] - Returns the top task and *removes it from the queue*
-* */queue?count={n}* [POST] - Returns the top n tasks and *removes them from the queue*
-* */worker*  [POST] - Registers a worker with the broker. 
+POST body contains { data: ..., type: ..., method: ...}, but the broker only looks at type. The parameters *data* and *method* are from initial node-mare.server/task POST and *type* is either 'divide' or 'process'. Later a node-mare.worker will get this task and execute it. More on that in that section. It will return 201 Created with a ~broker/task/{id} location header on success or some error code on failure. 
+
+### */queue* [GET] 
+
+Returns all queued tasks but does not remove them from the queue
+
+### */queue?count={n}* [GET]
+
+Returns all queued tasks but does not remove them from the queue
+
+### */queue* [POST]
+
+Returns the top task and *removes it from the queue*
+
+### */queue?count={n}* [POST]
+
+Returns the top n tasks and *removes them from the queue*
+
+### */worker*  [POST] 
+
+Registers a worker with the broker. 
 
 ,,,javascript 
     // POST body contents
@@ -142,31 +163,34 @@ It has the following methods:
     }
 ,,,
 
-  The broker pushes notifications out to the workers, so the first thing a worker needs to do when it starts up is register itself with the broker. Worker should post in the body a JSON object:
+The broker pushes notifications out to the workers, so the first thing a worker needs to do when it starts up is register itself with the broker. Worker should post in the body a JSON object:
 
-* */worker*  [GET] - Returns all registered workers.
-* */worker/{id}*  [GET] - Returns all registered workers.
+### */worker*  [GET] 
+
+Returns all registered workers.
+
 
 node-mare.worker
 ----------------
 
-A server process that communicates over HTTP to interact with the broker and collector.
+A server process that communicates over HTTP to interact with the broker and collector. It has the following HTTP endpoints...
 
-It has the following methods:
 
-* */notify* [POST] - Notifies the worker that a task of a given type is available on the broker.
+### */notify* [POST]
 
-  POST body contains:
+Notifies the worker that a task of a given type is available on the broker.
+
+,,,javascript
+    // POST body contents
+    { 
+        address: ..., // broker's ip address
+        type: ...     // type of task
+    }
+,,,
+
+It will return 204 No Content on success or some error code on failure. 
+
   
-  ,,,javascript
-      { 
-          address: ..., // broker's ip address
-          type: ...     // type of task
-      }
-  ,,,
-
-  It will return 204 No Content on success or some error code on failure. 
-
 node-mare.collector
 -------------------
 
@@ -174,42 +198,48 @@ A server process that communicates over HTTP to interact with the workers and se
 
 It has the following methods:
 
-* */result* [POST] - Initializes the result slot on the collector
+### */result* [POST]
 
-  ,,,javascript
-      // POST body contents
-      { 
-          id: ...,        // the id for the task (originally generated by the server)
-          result: ...,    // the result object in it's initialized state
-          collect: ...,   // the method used to collect result data
-          timeout: ...,   // how long (in ms) to wait for completion of this result set
-      }
-  ,,,
+Initializes the result slot on the collector
+,,,javascript
+    // POST body contents
+    { 
+        id: ...,        // the id for the task (originally generated by the server)
+        result: ...,    // the result object in it's initialized state
+        collect: ...,   // the method used to collect result data
+        timeout: ...,   // how long (in ms) to wait for completion of this result set
+    }
+,,,
 
-  It will return 204 No Content on success or some error code on failure. 
+It will return 204 No Content on success or some error code on failure. 
 
-* */result/{id}?expect={n}* [POST] - Posts an amount n of results the collector should expect for id
 
-   This is called by the worker after processing a divide task. 
+### */result/{id}?expect={n}* [POST]
+
+Posts an amount n of results the collector should expect for id. This is called by the worker after processing a divide task. 
+
    
-* */result/{id}* [POST] - Posts a unit of data to be collected
+### */result/{id}* [POST]
 
-  ,,,javascript
-      // POST body contents
-      { 
-          data: ...      // the individual unit of data to collect
-      }
-  ,,,
+Posts a unit of data to be collected
+,,,javascript
+    // POST body contents
+    { 
+        data: ...      // the individual unit of data to collect
+    }
+,,,
 
-  It will return 204 No Content on success or some error code on failure. 
+It will return 204 No Content on success or some error code on failure. 
 
-* */result/{id}* [GET] - Returns a unit of data to be collected
-  
-  ,,,javascript
-      // POST body contents
-      { 
-          data: ...      // the individual unit of data to collect
-      }
-  ,,,
 
-  It will return 204 No Content on success or some error code on failure. 
+### */result/{id}* [GET]
+
+Returns a unit of data to be collected  
+,,,javascript
+    // POST body contents
+    { 
+        data: ...      // the individual unit of data to collect
+    }
+,,,
+
+It will return 204 No Content on success or some error code on failure. 
