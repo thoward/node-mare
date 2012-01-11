@@ -1,4 +1,3 @@
-
 node-mare
 =========
 
@@ -135,13 +134,13 @@ It has the following methods:
 * */queue?count={n}* [POST] - Returns the top n tasks and *removes them from the queue*
 * */worker*  [POST] - Registers a worker with the broker. 
 
-  ,,,javascript 
-     // POST body contents
-     { 
-         address: ..., // IP Address
-         types: [...], // list of job types it can accept eg "divide", "process", etc... 
-     }
-  ,,,
+,,,javascript 
+    // POST body contents
+    { 
+        address: ..., // IP Address
+        types: [...], // list of job types it can accept eg "divide", "process", etc... 
+    }
+,,,
 
   The broker pushes notifications out to the workers, so the first thing a worker needs to do when it starts up is register itself with the broker. Worker should post in the body a JSON object:
 
